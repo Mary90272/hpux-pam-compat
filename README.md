@@ -1,0 +1,1 @@
+# hpux-pam-compat
