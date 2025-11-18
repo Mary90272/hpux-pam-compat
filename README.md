@@ -1,48 +1,82 @@
 
 # HP-UX 8-Character Password Compatibility (PAM)
-
-## This project introduces an HP-UX–compatible 8-character password fallback mechanism on Linux using PAM.
-It allows legacy HP-UX migrated users to authenticate with the first 8 characters of their long password, while all other users continue using full modern password hashing.
-
 ## Overview
+This project provides an HP-UX–compatible 8-character password fallback on Linux using a custom PAM module.
+It is designed for migrations where legacy HP-UX user accounts only validated the first 8 characters of their passwords.
 
-Some legacy systems (e.g., HP-UX) only stored and validated the first 8 characters of user passwords.
-After migration to Linux, these users may not be able to authenticate because Linux validates the full-length password.
+Only users placed in the legacyhpux group receive fallback behavior.
+All other users authenticate normally with full-length passwords.
 
-This project adds an optional fallback for such users by introducing:
+📦 Quick Start: Use the Prebuilt PAM Binary
 
-A custom PAM module: pam_hpux_compat.so
+This repository includes a fully working, precompiled PAM module.
 
-A dedicated PAM stack: hpux-test
+You can use it immediately without compiling anything.
 
-A conditional include in common-auth
+Install the ready-to-use module:
+sudo cp pam_hpux_compat.so /lib64/security/
+sudo chmod 644 /lib64/security/pam_hpux_compat.so
 
-A Linux group (legacyhpux) to control which users receive compatibility behavior
 
-Only users added to the legacyhpux group get the 8-character fallback.
+Once copied, the module is ready to be used by PAM.
+
+Minimal setup
+
+If you only want the functionality and do not need to inspect the source:
+
+Install the .so file (above)
+
+Use the provided hpux-test PAM stack
+
+Add the two include lines to common-auth
+
+Add users to legacyhpux as needed
+
+This gives you full HP-UX password compatibility without downloading the entire project.
+
+📁 Full Project / Source Code
+
+If you want auditing, transparency, or the ability to modify the module:
+
+Download or clone the repository to access:
+
+pam_hpux_compat.c (source)
+
+pam_check.c (optional helper source)
+
+pam_hpux_compat.so (ready binary)
+
+hpux-test (PAM stack)
+
+Modified common-auth.current
+
+All original backups
+
+INFO.txt
+
+README.txt
+
+Full tarball of files used during implementation
+
+This allows full code review and reproducibility of the environment.
 
 File Changes & Paths
 1. New PAM Module
 /lib64/security/pam_hpux_compat.so
 
-2. New Include Stack
+2. New PAM Include Stack
 /etc/pam.d/hpux-test
 
 
-This stack runs:
+Runs:
 
-pam_unix (full password check)
+pam_unix (normal full password)
 
 pam_hpux_compat (8-char fallback)
 
 3. Modified Global Entry Point
 
-File edited:
-
-/etc/pam.d/common-auth
-
-
-Two lines added at the very top:
+/etc/pam.d/common-auth — two lines added at top:
 
 auth    [success=1 default=ignore]   pam_succeed_if.so user notingroup legacyhpux
 auth    include                      hpux-test
@@ -52,73 +86,38 @@ Backups stored as:
 
 /etc/pam.d/common-auth.bak.hpux.<timestamp>
 
-How It Works
-
-Only users inside the legacyhpux group will receive HP-UX compatibility:
-
-Linux first tries normal full-length password via pam_unix
-
-If it fails and user is in the group, fallback checks first 8 characters
-
-If first 8 chars match the stored base hash, authentication succeeds
-
-This allows seamless migration from HP-UX to Linux.
-
-Managing Users
-Enable HP-UX fallback for a user
+Operational Model
+Enable fallback for specific user
 sudo usermod -aG legacyhpux <user>
 
-Set stored password to HP-UX format (first 8 chars only)
+Set password to match HP-UX's 8-char base
 echo "<user>:$(openssl passwd -6 <first8>)" | sudo chpasswd -e
 
 Disable fallback
 sudo gpasswd -d <user> legacyhpux
 
 Verification
-SSH test (password only)
+SSH test:
 ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no <user>@localhost
 
-su test
+su test:
 su - <user>
 
 
-Enter long password. If the first 8 characters match the stored base, login succeeds.
+Enter the long password; if its first 8 chars match the stored base, login succeeds.
 
 Rollback
 
-To restore the latest original common-auth:
+Restore original common-auth:
 
 sudo mv /etc/pam.d/common-auth.bak.hpux.<timestamp> /etc/pam.d/common-auth
 
-
-This removes the compatibility layer entirely.
-
-Included Files in Archive
-
-Inside hpux_pam_review_<timestamp>.tar.gz:
-
-common-auth.current
-
-common-auth.bak.hpux.*
-
-hpux-test.current
-
-pam_hpux_compat.so
-
-(optional) pam_hpux_compat.c, pam_check.c
-
-INFO.txt
-
-README.txt
-
-These represent all active and original files for auditing and rollback.
-
 Security Notes
 
-Fallback behavior is not enabled globally—only for users in legacyhpux.
+Fallback is not global — only users in legacyhpux receive it.
 
-Full-length password validation always runs first.
+Modern full-length authentication always runs first.
 
-Fallback only checks first 8 characters when necessary.
+Fallback is only used after a normal failure.
 
-Backups ensure easy and safe rollback.
+Backups ensure safe rollback.
