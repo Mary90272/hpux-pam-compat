@@ -1,10 +1,10 @@
 
-## HP-UX 8-Character Password Compatibility (PAM)
+# HP-UX 8-Character Password Compatibility (PAM)
 
 This project adds optional HP-UX–style 8-character password fallback to Linux authentication.
 Only users in the legacyhpux group receive fallback behavior; all other users authenticate normally.
 
-# Quick Start (No Source Code Needed)
+## Quick Start (No Source Code Needed)
 
 If you only want to use the HP-UX compatibility — you only need 3 files:
 
