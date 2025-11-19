@@ -1,0 +1,7 @@
+auth    sufficient  pam_unix.so nullok try_first_pass expose_authtok
+auth    sufficient  pam_hpux_compat.so
+auth    required    pam_deny.so
+
+account required    pam_permit.so
+password required   pam_deny.so
+session required    pam_permit.so
