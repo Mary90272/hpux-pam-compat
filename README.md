@@ -34,33 +34,40 @@ Add users to legacyhpux as needed
 
 This gives you full HP-UX password compatibility without downloading the entire project.
 
-📁 Full Project / Source Code
+If you only want to use the HP-UX 8-character password compatibility and do NOT need the full source, you only need three files from this project:
 
-If you want auditing, transparency, or the ability to modify the module:
+1. pam_hpux_compat.so
 
-Download or clone the repository to access:
+✔ The actual PAM module binary
+✔ Drop it into:
 
-pam_hpux_compat.c (source)
+/lib64/security/
 
-pam_check.c (optional helper source)
 
-pam_hpux_compat.so (ready binary)
+✔ This is the core file that performs the 8-character fallback.
+✔ Without this file, nothing works.
 
-hpux-test (PAM stack)
+2. hpux-test.current
 
-Modified common-auth.current
+✔ Your PAM include stack (goes in /etc/pam.d/hpux-test)
+✔ This file chains the authentication:
 
-All original backups
+pam_unix → pam_hpux_compat.so
 
-INFO.txt
 
-README.txt
+✔ Required so the system knows when to call the fallback module.
 
-Full tarball of files used during implementation
+3. common-auth.current
 
-This allows full code review and reproducibility of the environment.
+✔ Example of the modified /etc/pam.d/common-auth
+✔ Contains the two include lines needed to enable the fallback:
 
-File Changes & Paths
+auth    [success=1 default=ignore]   pam_succeed_if.so user notingroup legacyhpux
+auth    include                      hpux-test
+
+
+✔ Without these lines, the fallback PAM module will never run.
+
 1. New PAM Module
 /lib64/security/pam_hpux_compat.so
 
